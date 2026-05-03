@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Basket Scanner</title>
+  <style>
+/* ============================================================
+   Basket Manager — Shared Styles (warehouse theme)
+   Font: Courier Prime (mono) + DM Sans (body)
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --blue-900: #0a1628;
+  --blue-800: #0d2045;
+  --blue-700: #1565c0;
+  --blue-600: #1976d2;
+  --blue-400: #42a5f5;
+  --blue-200: #90caf9;
+  --blue-100: #bbdefb;
+  --blue-50:  #e3f2fd;
+  --blue-25:  #f0f7ff;
+
+  --green-800: #1b5e20;
+  --green-100: #c8e6c9;
+  --green-50:  #e8f5e9;
+
+  --orange-800: #bf360c;
+  --orange-600: #e65100;
+  --orange-100: #ffe0b2;
+  --orange-50:  #fff3e0;
+
+  --red-800: #880e4f;
+  --red-600: #c62828;
+  --red-100: #ffcdd2;
+  --red-50:  #fce4ec;
+
+  --amber-600: #f57f17;
+  --amber-50:  #fffde7;
+
+  --grey-900: #1a1a2e;
+  --grey-700: #37474f;
+  --grey-500: #546e7a;
+  --grey-400: #78909c;
+  --grey-300: #b0bec5;
+  --grey-200: #cfd8dc;
+  --grey-100: #eceff1;
+  --grey-50:  #f8f9fb;
+  --white:    #ffffff;
+
+  --bg:         #f0f2f5;
+  --surface:    #ffffff;
+  --border:     #e0e0e0;
+  --border-mid: #cfd8dc;
+
+  --font-mono: 'Courier Prime', monospace;
+  --font-body: 'DM Sans', sans-serif;
+
+  --radius-sm:  6px;
+  --radius-md:  8px;
+  --radius-lg:  12px;
+  --radius-xl:  16px;
+
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.07);
+  --shadow-md: 0 4px 12px rgba(0,0,0,.10);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,.13);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 14px; }
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--grey-900);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { text-decoration: none; color: inherit; }
+
+/* ---- Buttons ---- */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px; border-radius: var(--radius-md);
+  font-family: var(--font-body); font-size: 13px; font-weight: 600;
+  cursor: pointer; border: none; transition: all .15s; white-space: nowrap;
+}
+.btn svg { width: 15px; height: 15px; fill: currentColor; flex-shrink: 0; }
+.btn-primary   { background: var(--blue-700); color: #fff; }
+.btn-primary:hover  { background: var(--blue-800); }
+.btn-secondary { background: var(--blue-50); color: var(--blue-700); border: 1.5px solid var(--blue-200); }
+.btn-secondary:hover { background: var(--blue-100); }
+.btn-ghost     { background: var(--white); color: var(--grey-700); border: 1.5px solid var(--border-mid); }
+.btn-ghost:hover    { background: var(--grey-50); }
+.btn-danger    { background: var(--white); color: var(--red-600); border: 1.5px solid var(--red-100); }
+.btn-danger:hover   { background: var(--red-50); }
+.btn-sm { padding: 5px 11px; font-size: 12px; }
+.btn-lg { padding: 12px 24px; font-size: 15px; }
+.btn-mono { font-family: var(--font-mono); font-weight: 700; }
+
+/* ---- Badges ---- */
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 10px; border-radius: 20px;
+  font-family: var(--font-mono); font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .04em;
+}
+.badge::before { content: ''; width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+.badge-assigned  { background: var(--blue-50);   color: var(--blue-700);  border: 1px solid var(--blue-200); }
+.badge-assigned::before  { background: var(--blue-700); }
+.badge-pending   { background: var(--orange-50); color: var(--orange-600); border: 1px dashed var(--amber-600); }
+.badge-pending::before   { background: var(--orange-600); }
+.badge-closed    { background: var(--red-50);    color: var(--red-800);   border: 1px solid var(--red-100); }
+.badge-closed::before    { background: var(--red-800); }
+.badge-id { background: var(--blue-50); color: var(--blue-700); font-family: var(--font-mono); }
+.badge-id::before { display: none; }
+
+/* ---- Form inputs ---- */
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field label {
+  font-size: 11px; font-weight: 600; color: var(--grey-500);
+  text-transform: uppercase; letter-spacing: .07em; font-family: var(--font-mono);
+}
+.field input, .field select {
+  padding: 9px 13px;
+  border: 1.5px solid var(--border-mid);
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono); font-size: 13px; color: var(--grey-900);
+  background: var(--white); outline: none; transition: border .12s;
+  width: 100%;
+}
+.field input:focus, .field select:focus { border-color: var(--blue-700); }
+.field input::placeholder { color: var(--grey-300); }
+
+/* ---- Card ---- */
+.card {
+  background: var(--surface); border-radius: var(--radius-lg);
+  border: 1px solid var(--border); overflow: hidden;
+}
+.card-head {
+  padding: 11px 16px; background: var(--grey-50);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.card-head-title {
+  font-family: var(--font-mono); font-size: 12px; font-weight: 700;
+  color: var(--blue-700); text-transform: uppercase; letter-spacing: .09em;
+  display: flex; align-items: center; gap: 8px;
+}
+.card-head-title svg { width: 15px; height: 15px; fill: var(--blue-700); }
+.card-body { padding: 16px; }
+
+/* ---- Tables ---- */
+.data-table { width: 100%; border-collapse: collapse; }
+.data-table th {
+  text-align: left; padding: 9px 14px;
+  font-size: 10px; font-weight: 700; color: var(--grey-500);
+  letter-spacing: .09em; text-transform: uppercase;
+  font-family: var(--font-mono); border-bottom: 1px solid var(--border);
+  background: var(--grey-50);
+}
+.data-table td {
+  padding: 10px 14px; border-bottom: 1px solid var(--grey-100);
+  font-size: 13px; vertical-align: middle;
+}
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tr:hover td { background: var(--blue-25); }
+
+/* ---- Toast ---- */
+.toast {
+  position: fixed; bottom: 20px; left: 50%;
+  transform: translateX(-50%) translateY(70px); opacity: 0;
+  background: var(--grey-900); color: #fff;
+  padding: 10px 20px; border-radius: 24px;
+  font-size: 12px; font-weight: 600; font-family: var(--font-mono);
+  transition: all .22s; pointer-events: none; z-index: 9999;
+  white-space: nowrap; box-shadow: var(--shadow-md);
+}
+.toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+.toast.ok  { background: var(--green-800); }
+.toast.err { background: var(--red-600); }
+.toast.info { background: var(--blue-700); }
+
+/* ---- Stat card ---- */
+.stat-card {
+  background: var(--surface); border-radius: var(--radius-lg);
+  border: 1px solid var(--border); padding: 14px 16px;
+}
+.stat-card .s-label {
+  font-size: 11px; font-weight: 500; color: var(--grey-400);
+  text-transform: uppercase; letter-spacing: .06em; font-family: var(--font-mono);
+}
+.stat-card .s-val {
+  font-family: var(--font-mono); font-size: 30px; font-weight: 700;
+  color: var(--grey-900); line-height: 1; margin-top: 5px;
+}
+.stat-card .s-bar { height: 4px; border-radius: 2px; margin-top: 10px; background: var(--grey-100); }
+.stat-card .s-fill { height: 4px; border-radius: 2px; transition: width .4s; }
+
+/* ---- Occupancy tile colours ---- */
+.occ-empty  { background: var(--green-50);  border-color: var(--green-100); }
+.occ-low    { background: var(--blue-50);   border-color: var(--blue-200); }
+.occ-mid    { background: var(--blue-100);  border-color: #64b5f6; }
+.occ-high   { background: var(--blue-700);  border-color: var(--blue-800); }
+.occ-hot    { background: var(--orange-600);border-color: var(--orange-800); }
+.occ-pending{ background: var(--orange-50); border-color: var(--amber-600); border-style: dashed; }
+
+.occ-empty  .tile-id,.occ-empty  .tile-loc,.occ-empty  .tile-stat { color: var(--green-800); }
+.occ-low    .tile-id,.occ-low    .tile-loc,.occ-low    .tile-stat { color: var(--blue-700); }
+.occ-mid    .tile-id,.occ-mid    .tile-loc,.occ-mid    .tile-stat { color: var(--blue-800); }
+.occ-high   .tile-id,.occ-high   .tile-loc,.occ-high   .tile-stat { color: var(--blue-50); }
+.occ-hot    .tile-id,.occ-hot    .tile-loc,.occ-hot    .tile-stat { color: #fff8f0; }
+.occ-pending.tile-id,.occ-pending .tile-loc,.occ-pending .tile-stat { color: var(--orange-600); }
+
+/* ---- Utility ---- */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+.flex    { display: flex; }
+.flex-center { display: flex; align-items: center; }
+.gap-sm  { gap: 8px; }
+.gap-md  { gap: 12px; }
+.mono    { font-family: var(--font-mono); }
+
+</style>
+  <style>
+    :root {
+      --mob-bg: #0a1628;
+      --mob-surface: #0f2040;
+      --mob-card: #162848;
+      --mob-border: #1e3a6a;
+      --mob-text: #e8f4fd;
+      --mob-sub: #7baed4;
+      --mob-accent: #42a5f5;
+      --mob-green: #4caf50;
+      --mob-red: #ef5350;
+      --mob-amber: #ffa726;
+    }
+
+    * { -webkit-tap-highlight-color: transparent; }
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      background: var(--mob-bg); color: var(--mob-text);
+      font-family: var(--font-body); font-size: 14px;
+      display: flex; flex-direction: column;
+    }
+
+    /* ---- Status bar ---- */
+    .status-bar {
+      background: var(--mob-bg); padding: 12px 18px 0;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .sb-brand { font-family: var(--font-mono); font-size: 13px; font-weight: 700; color: var(--mob-accent); display: flex; align-items: center; gap: 8px; }
+    .sb-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--mob-accent); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+    .sb-right { display: flex; align-items: center; gap: 10px; }
+    .sb-stat { font-family: var(--font-mono); font-size: 11px; color: var(--mob-sub); }
+    .sb-back { background: var(--mob-surface); border: 1px solid var(--mob-border); border-radius: 20px; padding: 4px 11px; font-size: 11px; color: var(--mob-sub); cursor: pointer; font-family: var(--font-mono); text-decoration: none; }
+
+    /* ---- Mode tabs ---- */
+    .mode-bar {
+      margin: 14px 18px 0;
+      background: var(--mob-surface); border-radius: 12px;
+      display: flex; padding: 4px; gap: 3px;
+      border: 1px solid var(--mob-border);
+    }
+    .mode-btn {
+      flex: 1; padding: 9px 6px; border: none; border-radius: 9px;
+      font-family: var(--font-mono); font-size: 12px; font-weight: 700;
+      cursor: pointer; transition: all .15s; background: transparent; color: var(--mob-sub);
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .mode-btn svg { width: 14px; height: 14px; fill: currentColor; flex-shrink: 0; }
+    .mode-btn.on { background: var(--mob-accent); color: #fff; box-shadow: 0 2px 8px rgba(66,165,245,.4); }
+
+    /* ---- Scrollable body ---- */
+    .mob-body { flex: 1; overflow-y: auto; padding: 14px 18px 100px; }
+    .mob-body::-webkit-scrollbar { display: none; }
+
+    /* ---- Scanner fields ---- */
+    .scan-card {
+      background: var(--mob-card); border-radius: 16px; border: 1px solid var(--mob-border);
+      padding: 18px; margin-bottom: 14px;
+    }
+    .scan-card-title {
+      font-family: var(--font-mono); font-size: 11px; font-weight: 700;
+      color: var(--mob-accent); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 14px;
+      display: flex; align-items: center; gap: 7px;
+    }
+    .scan-card-title svg { width: 14px; height: 14px; fill: var(--mob-accent); }
+
+    .scan-field { margin-bottom: 14px; }
+    .scan-field label {
+      display: block; font-size: 11px; font-weight: 600; color: var(--mob-sub);
+      text-transform: uppercase; letter-spacing: .07em; font-family: var(--font-mono); margin-bottom: 7px;
+    }
+    .scan-input-wrap { position: relative; }
+    .scan-input {
+      width: 100%; padding: 14px 48px 14px 14px;
+      background: var(--mob-bg); border: 2px solid var(--mob-border);
+      border-radius: 10px; color: var(--mob-text); font-family: var(--font-mono);
+      font-size: 16px; font-weight: 700; outline: none; transition: border .15s;
+      -webkit-appearance: none;
+    }
+    .scan-input:focus { border-color: var(--mob-accent); }
+    .scan-input::placeholder { color: #2a4a72; font-weight: 400; font-size: 14px; }
+    .scan-input.filled { border-color: var(--mob-green); background: rgba(76,175,80,.07); }
+    .scan-icon {
+      position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+      width: 22px; height: 22px; fill: var(--mob-border); pointer-events: none; transition: fill .15s;
+    }
+    .scan-input:focus ~ .scan-icon { fill: var(--mob-accent); }
+    .scan-input.filled ~ .scan-icon { fill: var(--mob-green); }
+
+    /* ---- Action button ---- */
+    .action-btn {
+      width: 100%; padding: 16px; border-radius: 12px; border: none;
+      font-family: var(--font-mono); font-size: 15px; font-weight: 700;
+      cursor: pointer; transition: all .15s; display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .action-btn svg { width: 18px; height: 18px; fill: currentColor; }
+    .action-btn:disabled { opacity: .35; cursor: not-allowed; }
+    .action-btn.assign-btn { background: var(--mob-accent); color: #fff; box-shadow: 0 4px 16px rgba(66,165,245,.35); }
+    .action-btn.assign-btn:not(:disabled):hover { background: #1e88e5; }
+    .action-btn.assign-btn:active { transform: scale(.97); }
+    .action-btn.unassign-btn { background: transparent; color: var(--mob-red); border: 2px solid var(--mob-red); }
+    .action-btn.unassign-btn:not(:disabled):hover { background: rgba(239,83,80,.1); }
+
+    /* ---- Feedback ---- */
+    .feedback-box {
+      border-radius: 12px; padding: 14px 16px; margin-bottom: 14px;
+      display: flex; align-items: center; gap: 12px;
+      animation: fadeIn .2s ease;
+    }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:none} }
+    .feedback-box.ok  { background: rgba(76,175,80,.12);  border: 1.5px solid rgba(76,175,80,.4); }
+    .feedback-box.err { background: rgba(239,83,80,.12);  border: 1.5px solid rgba(239,83,80,.4); }
+    .feedback-box.info { background: rgba(66,165,245,.1); border: 1.5px solid rgba(66,165,245,.3); }
+    .fb-icon { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .feedback-box.ok  .fb-icon { background: rgba(76,175,80,.2); }
+    .feedback-box.err .fb-icon { background: rgba(239,83,80,.2); }
+    .feedback-box.info .fb-icon { background: rgba(66,165,245,.15); }
+    .fb-icon svg { width: 18px; height: 18px; fill: currentColor; }
+    .feedback-box.ok  .fb-icon svg { fill: var(--mob-green); }
+    .feedback-box.err .fb-icon svg { fill: var(--mob-red); }
+    .feedback-box.info .fb-icon svg { fill: var(--mob-accent); }
+    .fb-text { flex: 1; }
+    .fb-title { font-family: var(--font-mono); font-size: 13px; font-weight: 700; }
+    .feedback-box.ok  .fb-title { color: var(--mob-green); }
+    .feedback-box.err .fb-title { color: var(--mob-red); }
+    .feedback-box.info .fb-title { color: var(--mob-accent); }
+    .fb-sub { font-size: 12px; color: var(--mob-sub); margin-top: 3px; font-family: var(--font-mono); }
+
+    /* ---- Recent activity ---- */
+    .activity-list { display: flex; flex-direction: column; gap: 8px; }
+    .act-item {
+      background: var(--mob-card); border: 1px solid var(--mob-border);
+      border-radius: 10px; padding: 11px 13px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .act-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .act-dot.assign   { background: var(--mob-green); }
+    .act-dot.unassign { background: var(--mob-red); }
+    .act-info { flex: 1; min-width: 0; }
+    .act-id   { font-family: var(--font-mono); font-size: 13px; font-weight: 700; color: var(--mob-text); }
+    .act-loc  { font-family: var(--font-mono); font-size: 11px; color: var(--mob-sub); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .act-time { font-family: var(--font-mono); font-size: 10px; color: #3a6090; flex-shrink: 0; }
+
+    /* ---- Stats panel ---- */
+    .mob-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+    .mob-stat {
+      background: var(--mob-card); border: 1px solid var(--mob-border);
+      border-radius: 12px; padding: 14px;
+    }
+    .mob-stat .ms-val { font-family: var(--font-mono); font-size: 28px; font-weight: 700; color: var(--mob-text); line-height: 1; }
+    .mob-stat .ms-label { font-family: var(--font-mono); font-size: 11px; color: var(--mob-sub); margin-top: 6px; text-transform: uppercase; letter-spacing: .06em; }
+    .mob-stat .ms-bar { height: 3px; border-radius: 2px; background: var(--mob-border); margin-top: 10px; }
+    .mob-stat .ms-fill { height: 3px; border-radius: 2px; transition: width .4s; }
+
+    .mob-section-label {
+      font-family: var(--font-mono); font-size: 11px; font-weight: 700;
+      color: var(--mob-sub); text-transform: uppercase; letter-spacing: .1em;
+      margin-bottom: 10px; margin-top: 4px;
+    }
+
+    /* ---- Quick lookup ---- */
+    .lookup-result {
+      background: var(--mob-card); border: 1.5px solid var(--mob-border);
+      border-radius: 12px; overflow: hidden; margin-top: 10px;
+    }
+    .lr-head { padding: 12px 14px; border-bottom: 1px solid var(--mob-border); display: flex; align-items: center; justify-content: space-between; }
+    .lr-id   { font-family: var(--font-mono); font-size: 15px; font-weight: 700; color: var(--mob-accent); }
+    .lr-body { padding: 13px 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .lr-cell-label { font-size: 10px; font-weight: 700; color: var(--mob-sub); text-transform: uppercase; letter-spacing: .08em; font-family: var(--font-mono); margin-bottom: 4px; }
+    .lr-cell-val { font-family: var(--font-mono); font-size: 14px; font-weight: 700; color: var(--mob-text); }
+
+    .mob-badge {
+      padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: 700;
+      font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .04em;
+    }
+    .mb-assigned  { background: rgba(66,165,245,.15); color: var(--mob-accent); border: 1px solid rgba(66,165,245,.3); }
+    .mb-pending   { background: rgba(255,167,38,.1);  color: var(--mob-amber);  border: 1px dashed rgba(255,167,38,.4); }
+    .mb-closed    { background: rgba(239,83,80,.12);  color: var(--mob-red);    border: 1px solid rgba(239,83,80,.3); }
+
+    /* ---- Bottom nav ---- */
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: var(--mob-surface); border-top: 1px solid var(--mob-border);
+      display: flex; padding: 8px 0 max(8px,env(safe-area-inset-bottom));
+    }
+    .bnav-btn {
+      flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;
+      padding: 6px 4px; background: none; border: none; cursor: pointer;
+      font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+      color: var(--mob-sub); transition: all .14s;
+    }
+    .bnav-btn svg { width: 20px; height: 20px; fill: currentColor; }
+    .bnav-btn.on { color: var(--mob-accent); }
+    .bnav-btn.on svg { filter: drop-shadow(0 0 4px rgba(66,165,245,.5)); }
+  </style>
+</head>
+<body>
+
+<div class="status-bar">
+  <div class="sb-brand"><div class="sb-dot"></div>Scanner</div>
+  <div class="sb-right">
+    <span class="sb-stat" id="mob-pill">0 active</span>
+    <a href="basket-manager.html" class="sb-back">← Desktop</a>
+  </div>
+</div>
+
+<div class="mode-bar">
+  <button class="mode-btn on" onclick="setMode('assign')" id="btn-assign">
+    <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+    Assign
+  </button>
+  <button class="mode-btn" onclick="setMode('unassign')" id="btn-unassign">
+    <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+    Unassign
+  </button>
+  <button class="mode-btn" onclick="setMode('lookup')" id="btn-lookup">
+    <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+    Lookup
+  </button>
+  <button class="mode-btn" onclick="setMode('activity')" id="btn-activity">
+    <svg viewBox="0 0 24 24"><path d="M13 2.05v2.02c3.95.49 7 3.85 7 7.93 0 3.21-1.81 6-4.5 7.54L13 17v5h5l-1.22-1.22C19.91 19.07 22 15.76 22 12c0-5.18-3.95-9.45-9-9.95zM11 2.05C5.95 2.55 2 6.82 2 12c0 3.76 2.09 7.07 5.22 8.78L6 22h5V2.05z"/></svg>
+    Activity
+  </button>
+</div>
+
+<div class="mob-body" id="mob-body">
+
+  <!-- ASSIGN PANE -->
+  <div id="pane-assign">
+    <div style="height:12px"></div>
+    <div id="assign-feedback"></div>
+    <div class="scan-card">
+      <div class="scan-card-title">
+        <svg viewBox="0 0 24 24"><path d="M9.5 6.5v3h-3v-3h3M11 5H5v6h6V5zm-1.5 9.5v3h-3v-3h3M11 13H5v6h6v-6zm6.5-6.5v3h-3v-3h3M20 5h-6v6h6V5zm-6 8h1.5v1.5H14V13zm1.5 1.5H17V16h-1.5v-1.5zM17 13h1.5v1.5H17V13zm-3 3h1.5v1.5H14V16zm1.5 1.5H17V19h-1.5v-1.5zM17 16h1.5v1.5H17V16zm1.5-1.5H20V16h-1.5v-1.5zm0 3H20V19h-1.5v-1.5z"/></svg>
+        Scan basket
+      </div>
+      <div class="scan-field">
+        <label>Basket ID</label>
+        <div class="scan-input-wrap">
+          <input class="scan-input" id="a-basket" placeholder="Scan or type basket ID" autocomplete="off" autocorrect="off" spellcheck="false" oninput="onScanInput('a-basket')" onkeydown="handleEnter(event,'a-loc')" />
+          <svg class="scan-icon" viewBox="0 0 24 24"><path d="M9.5 6.5v3h-3v-3h3M11 5H5v6h6V5zm-1.5 9.5v3h-3v-3h3M11 13H5v6h6v-6zm6.5-6.5v3h-3v-3h3M20 5h-6v6h6V5z"/></svg>
+        </div>
+      </div>
+      <div class="scan-field">
+        <label>Location</label>
+        <div class="scan-input-wrap">
+          <input class="scan-input" id="a-loc" placeholder="Scan or type location" autocomplete="off" autocorrect="off" spellcheck="false" list="a-loc-dl" oninput="onScanInput('a-loc')" onkeydown="handleEnter(event,null,'doAssign')" />
+          <datalist id="a-loc-dl"></datalist>
+          <svg class="scan-icon" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+        </div>
+      </div>
+      <button class="action-btn assign-btn" id="btn-do-assign" onclick="doAssign()" disabled>
+        <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+        Assign basket
+      </button>
+    </div>
+  </div>
+
+  <!-- UNASSIGN PANE -->
+  <div id="pane-unassign" style="display:none">
+    <div style="height:12px"></div>
+    <div id="unassign-feedback"></div>
+    <div class="scan-card">
+      <div class="scan-card-title">
+        <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        Scan to unassign
+      </div>
+      <div class="scan-field">
+        <label>Basket ID</label>
+        <div class="scan-input-wrap">
+          <input class="scan-input" id="u-basket" placeholder="Scan or type basket ID" autocomplete="off" autocorrect="off" spellcheck="false" oninput="onScanInput('u-basket');previewUnassign()" onkeydown="handleEnter(event,null,'doUnassign')" />
+          <svg class="scan-icon" viewBox="0 0 24 24"><path d="M9.5 6.5v3h-3v-3h3M11 5H5v6h6V5zm-1.5 9.5v3h-3v-3h3M11 13H5v6h6v-6zm6.5-6.5v3h-3v-3h3M20 5h-6v6h6V5z"/></svg>
+        </div>
+      </div>
+      <div id="u-preview"></div>
+      <button class="action-btn unassign-btn" id="btn-do-unassign" onclick="doUnassign()" disabled>
+        <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        Unassign basket
+      </button>
+    </div>
+  </div>
+
+  <!-- LOOKUP PANE -->
+  <div id="pane-lookup" style="display:none">
+    <div style="height:12px"></div>
+    <div class="scan-card">
+      <div class="scan-card-title">
+        <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+        Quick lookup
+      </div>
+      <div class="scan-field">
+        <label>Basket ID</label>
+        <div class="scan-input-wrap">
+          <input class="scan-input" id="l-basket" placeholder="Scan or type basket ID" autocomplete="off" autocorrect="off" spellcheck="false" oninput="onScanInput('l-basket');doLookup()" />
+          <svg class="scan-icon" viewBox="0 0 24 24"><path d="M9.5 6.5v3h-3v-3h3M11 5H5v6h6V5zm-1.5 9.5v3h-3v-3h3M11 13H5v6h6v-6zm6.5-6.5v3h-3v-3h3M20 5h-6v6h6V5z"/></svg>
+        </div>
+      </div>
+    </div>
+    <div id="lookup-result"></div>
+  </div>
+
+  <!-- ACTIVITY PANE -->
+  <div id="pane-activity" style="display:none">
+    <div style="height:12px"></div>
+    <div class="mob-stats">
+      <div class="mob-stat"><div class="ms-val" id="mob-total">0</div><div class="ms-label">Total</div><div class="ms-bar"><div class="ms-fill" id="mob-f-total" style="width:100%;background:var(--mob-accent)"></div></div></div>
+      <div class="mob-stat"><div class="ms-val" id="mob-assigned">0</div><div class="ms-label">Assigned</div><div class="ms-bar"><div class="ms-fill" id="mob-f-assigned" style="width:0%;background:var(--mob-green)"></div></div></div>
+      <div class="mob-stat"><div class="ms-val" id="mob-unassigned">0</div><div class="ms-label">Unassigned</div><div class="ms-bar"><div class="ms-fill" id="mob-f-unassigned" style="width:0%;background:var(--mob-amber)"></div></div></div>
+      <div class="mob-stat"><div class="ms-val" id="mob-closed">0</div><div class="ms-label">Closed</div><div class="ms-bar"><div class="ms-fill" id="mob-f-closed" style="width:0%;background:var(--mob-red)"></div></div></div>
+    </div>
+    <div class="mob-section-label">Recent scans (this session)</div>
+    <div id="activity-list"><div style="text-align:center;padding:2rem;font-family:var(--font-mono);font-size:12px;color:var(--mob-sub)">No activity yet</div></div>
+  </div>
+
+</div>
+
+<nav class="bottom-nav">
+  <button class="bnav-btn on" id="bnav-assign" onclick="setMode('assign')">
+    <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+    Assign
+  </button>
+  <button class="bnav-btn" id="bnav-unassign" onclick="setMode('unassign')">
+    <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+    Unassign
+  </button>
+  <button class="bnav-btn" id="bnav-lookup" onclick="setMode('lookup')">
+    <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+    Lookup
+  </button>
+  <button class="bnav-btn" id="bnav-activity" onclick="setMode('activity')">
+    <svg viewBox="0 0 24 24"><path d="M13 2.05v2.02c3.95.49 7 3.85 7 7.93 0 3.21-1.81 6-4.5 7.54L13 17v5h5l-1.22-1.22C19.91 19.07 22 15.76 22 12c0-5.18-3.95-9.45-9-9.95z"/></svg>
+    Activity
+  </button>
+</nav>
+
+<script>
+/**
+ * Basket Manager — shared data layer
+ * All data lives in localStorage under the "bm_" namespace.
+ */
+
+
+// ── Cross-tab / cross-window real-time sync ──────────────────────────────
+const _syncChannel = (typeof BroadcastChannel !== 'undefined')
+  ? new BroadcastChannel('bm_sync') : null
+
+function _notifySync(action) {
+  try {
+    if (_syncChannel) _syncChannel.postMessage({ action, ts: Date.now() })
+  } catch(e) {}
+}
+
+const DB = {
+  _keys: { baskets: 'bm_baskets', closed: 'bm_closed', log: 'bm_log' },
+
+  _read(k)  { try { return JSON.parse(localStorage.getItem(k)) ?? [] } catch { return [] } },
+  _write(k, v) { localStorage.setItem(k, JSON.stringify(v)) },
+
+  get baskets() { return this._read(this._keys.baskets) },
+  get closed()  { return this._read(this._keys.closed)  },
+  get log()     { return this._read(this._keys.log)     },
+
+  save({ baskets, closed, log } = {}) {
+    if (baskets !== undefined) this._write(this._keys.baskets, baskets)
+    if (closed  !== undefined) this._write(this._keys.closed,  closed)
+    if (log     !== undefined) this._write(this._keys.log,     log)
+    _notifySync('update')
+  },
+
+  addBasket(id, location) {
+    const baskets = this.baskets
+    if (baskets.find(b => b.id === id)) return { ok: false, msg: 'Basket ID already exists' }
+    baskets.push({ uid: uid(), id, location: location || null, createdAt: Date.now(), assignedAt: location ? Date.now() : null })
+    this.save({ baskets })
+    return { ok: true }
+  },
+
+  assignBasket(id, location) {
+    const baskets = this.baskets
+    const b = baskets.find(x => x.id === id)
+    if (!b) return { ok: false, msg: 'Basket not found' }
+    b.location = location
+    b.assignedAt = Date.now()
+    this.save({ baskets })
+    return { ok: true, basket: b }
+  },
+
+  unassignBasket(uid_or_id) {
+    let baskets = this.baskets
+    const b = baskets.find(x => x.uid === uid_or_id || x.id === uid_or_id)
+    if (!b) return { ok: false, msg: 'Basket not found' }
+    const closed = this.closed
+    closed.push({ uid: b.uid, id: b.id, lastLocation: b.location, closedAt: Date.now(), createdAt: b.createdAt })
+    baskets = baskets.filter(x => x.uid !== b.uid)
+    this.save({ baskets, closed })
+    return { ok: true, basket: b }
+  },
+
+  assignOrCreate(basketId, location) {
+    const baskets = this.baskets
+    const existing = baskets.find(b => b.id === basketId)
+    if (existing) {
+      return this.assignBasket(basketId, location)
+    } else {
+      return this.addBasket(basketId, location)
+    }
+  },
+
+  logBackup(entry) {
+    const log = this.log
+    log.push(entry)
+    if (log.length > 200) log.splice(0, log.length - 200)
+    this.save({ log })
+  },
+
+  clearLog() {
+    this.save({ log: [] })
+  },
+
+  getStats() {
+    const baskets = this.baskets
+    const closed  = this.closed
+    return {
+      total:      baskets.length,
+      assigned:   baskets.filter(b => b.location).length,
+      unassigned: baskets.filter(b => !b.location).length,
+      closed:     closed.length,
+    }
+  },
+
+  getLocations() {
+    const s = new Set()
+    this.baskets.forEach(b => b.location && s.add(b.location))
+    this.closed.forEach(b => b.lastLocation && s.add(b.lastLocation))
+    return [...s].sort()
+  },
+}
+
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6) }
+
+function fmtDate(ts) {
+  if (!ts) return '—'
+  return new Date(ts).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: '2-digit' })
+}
+
+function fmtDateTime(ts) {
+  if (!ts) return 'Never'
+  return new Date(ts).toLocaleString()
+}
+
+function isoStamp() {
+  return new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
+}
+
+function downloadCSV(rows, filename) {
+  const csv = rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\r\n')
+  const a   = document.createElement('a')
+  a.href    = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
+  a.download = filename
+  a.click()
+}
+
+function escHtml(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+}
+
+</script>
+<script>
+const modes = ['assign','unassign','lookup','activity']
+let sessionLog = []
+let currentMode = 'assign'
+
+function setMode(m) {
+  currentMode = m
+  modes.forEach(x => {
+    document.getElementById('pane-'+x).style.display = x===m ? 'block' : 'none'
+    document.getElementById('btn-'+x).classList.toggle('on', x===m)
+    document.getElementById('bnav-'+x).classList.toggle('on', x===m)
+  })
+  if (m === 'activity') renderActivity()
+  if (m === 'assign') setTimeout(()=>document.getElementById('a-basket')?.focus(), 100)
+  if (m === 'unassign') setTimeout(()=>document.getElementById('u-basket')?.focus(), 100)
+  if (m === 'lookup') setTimeout(()=>document.getElementById('l-basket')?.focus(), 100)
+  refreshLocDl()
+}
+
+function refreshLocDl() {
+  const locs = DB.getLocations()
+  const dl = document.getElementById('a-loc-dl')
+  if (dl) dl.innerHTML = locs.map(l=>`<option value="${escHtml(l)}">`).join('')
+}
+
+function onScanInput(id) {
+  const inp = document.getElementById(id)
+  if (!inp) return
+  inp.classList.toggle('filled', inp.value.trim().length > 0)
+  updateAssignBtn()
+  updateUnassignBtn()
+}
+
+function updateAssignBtn() {
+  const bid = document.getElementById('a-basket')?.value.trim()
+  const loc = document.getElementById('a-loc')?.value.trim()
+  const btn = document.getElementById('btn-do-assign')
+  if (btn) btn.disabled = !(bid && loc)
+}
+
+function updateUnassignBtn() {
+  const bid = document.getElementById('u-basket')?.value.trim()
+  const btn = document.getElementById('btn-do-unassign')
+  if (btn) btn.disabled = !bid
+}
+
+function handleEnter(e, nextId, action) {
+  if (e.key !== 'Enter') return
+  e.preventDefault()
+  if (nextId) {
+    const n = document.getElementById(nextId)
+    if (n) { n.focus(); return }
+  }
+  if (action === 'doAssign')   doAssign()
+  if (action === 'doUnassign') doUnassign()
+}
+
+function showFeedback(containerId, type, title, sub) {
+  const icons = {
+    ok:   `<path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>`,
+    err:  `<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>`,
+    info: `<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>`,
+  }
+  document.getElementById(containerId).innerHTML = `
+    <div class="feedback-box ${type}">
+      <div class="fb-icon"><svg viewBox="0 0 24 24">${icons[type]}</svg></div>
+      <div class="fb-text">
+        <div class="fb-title">${escHtml(title)}</div>
+        ${sub ? `<div class="fb-sub">${escHtml(sub)}</div>` : ''}
+      </div>
+    </div>`
+  setTimeout(() => { const el = document.getElementById(containerId); if(el) el.innerHTML = '' }, 4000)
+}
+
+function doAssign() {
+  const bid = document.getElementById('a-basket')?.value.trim()
+  const loc = document.getElementById('a-loc')?.value.trim()
+  if (!bid || !loc) return
+  const r = DB.assignOrCreate(bid, loc)
+  if (!r.ok) {
+    showFeedback('assign-feedback','err','Error',r.msg)
+    return
+  }
+  showFeedback('assign-feedback','ok','Assigned: '+bid, 'Location: '+loc)
+  sessionLog.unshift({ type:'assign', id:bid, loc, ts:Date.now() })
+  document.getElementById('a-basket').value = ''
+  document.getElementById('a-loc').value   = ''
+  document.getElementById('a-basket').classList.remove('filled')
+  document.getElementById('a-loc').classList.remove('filled')
+  updateAssignBtn()
+  updateMobPill()
+  refreshLocDl()
+  document.getElementById('a-basket').focus()
+}
+
+function previewUnassign() {
+  const bid = document.getElementById('u-basket')?.value.trim()
+  const prev = document.getElementById('u-preview')
+  if (!bid) { prev.innerHTML = ''; return }
+  const b = DB.baskets.find(x=>x.id===bid)
+  if (!b) {
+    prev.innerHTML = `<div class="feedback-box info" style="margin-bottom:12px">
+      <div class="fb-icon"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg></div>
+      <div class="fb-text"><div class="fb-title" style="color:var(--mob-accent)">Basket not found</div><div class="fb-sub">Not in active allocation</div></div>
+    </div>`
+    document.getElementById('btn-do-unassign').disabled = true
+    return
+  }
+  prev.innerHTML = `<div class="lookup-result" style="margin-bottom:12px;border-color:rgba(239,83,80,.4)">
+    <div class="lr-head">
+      <span class="lr-id">${escHtml(b.id)}</span>
+      <span class="mob-badge ${b.location?'mb-assigned':'mb-pending'}">${b.location?'Assigned':'Unassigned'}</span>
+    </div>
+    <div class="lr-body">
+      <div><div class="lr-cell-label">Location</div><div class="lr-cell-val" style="${!b.location?'color:var(--mob-sub)':''}">${b.location?escHtml(b.location):'—'}</div></div>
+      <div><div class="lr-cell-label">Added</div><div class="lr-cell-val">${fmtDate(b.createdAt)}</div></div>
+    </div>
+  </div>`
+  document.getElementById('btn-do-unassign').disabled = false
+}
+
+function doUnassign() {
+  const bid = document.getElementById('u-basket')?.value.trim()
+  if (!bid) return
+  const b = DB.baskets.find(x=>x.id===bid)
+  if (!b) { showFeedback('unassign-feedback','err','Not found','Basket '+bid+' is not in active allocation'); return }
+  const r = DB.unassignBasket(b.uid)
+  if (!r.ok) { showFeedback('unassign-feedback','err','Error',r.msg); return }
+  showFeedback('unassign-feedback','ok','Unassigned: '+bid, 'Moved to closed · was at: '+(r.basket.location||'unassigned'))
+  sessionLog.unshift({ type:'unassign', id:bid, loc:r.basket.location||'—', ts:Date.now() })
+  document.getElementById('u-basket').value = ''
+  document.getElementById('u-basket').classList.remove('filled')
+  document.getElementById('u-preview').innerHTML = ''
+  updateUnassignBtn(); updateMobPill()
+  document.getElementById('u-basket').focus()
+}
+
+function doLookup() {
+  const bid = document.getElementById('l-basket')?.value.trim()
+  const el = document.getElementById('lookup-result')
+  if (!bid) { el.innerHTML = ''; return }
+  const active = DB.baskets.find(x=>x.id===bid)
+  const closed = DB.closed.find(x=>x.id===bid)
+  const b = active || closed
+  if (!b) {
+    el.innerHTML = `<div style="padding:1.5rem;text-align:center;font-family:var(--font-mono);font-size:12px;color:var(--mob-sub)">No basket found for "${escHtml(bid)}"</div>`
+    return
+  }
+  const isClosed = !!closed
+  const loc = isClosed ? b.lastLocation : b.location
+  el.innerHTML = `<div class="lookup-result">
+    <div class="lr-head">
+      <span class="lr-id">${escHtml(b.id)}</span>
+      <span class="mob-badge ${isClosed?'mb-closed':loc?'mb-assigned':'mb-pending'}">${isClosed?'Closed':loc?'Assigned':'Unassigned'}</span>
+    </div>
+    <div class="lr-body">
+      <div><div class="lr-cell-label">Location</div><div class="lr-cell-val" style="${!loc?'color:var(--mob-sub)':''}">${loc?escHtml(loc):'Not assigned'}</div></div>
+      <div><div class="lr-cell-label">${isClosed?'Closed on':'Added'}</div><div class="lr-cell-val">${fmtDate(isClosed?b.closedAt:b.createdAt)}</div></div>
+    </div>
+    ${!isClosed&&!loc?`<div style="padding:10px 14px;border-top:1px solid var(--mob-border)">
+      <div style="display:flex;gap:8px">
+        <input id="lq-loc" placeholder="Enter location to assign" list="lq-dl" style="flex:1;padding:9px 11px;background:var(--mob-bg);border:1.5px solid var(--mob-border);border-radius:8px;color:var(--mob-text);font-family:var(--font-mono);font-size:13px;outline:none"/>
+        <datalist id="lq-dl">${DB.getLocations().map(l=>`<option value="${escHtml(l)}">`).join('')}</datalist>
+        <button onclick="lookupAssign('${b.id}')" style="padding:9px 14px;background:var(--mob-accent);color:#fff;border:none;border-radius:8px;font-family:var(--font-mono);font-size:12px;font-weight:700;cursor:pointer">Assign</button>
+      </div>
+    </div>`:''}
+  </div>`
+}
+
+function lookupAssign(basketId) {
+  const loc = document.getElementById('lq-loc')?.value.trim()
+  if (!loc) return
+  DB.assignOrCreate(basketId, loc)
+  sessionLog.unshift({ type:'assign', id:basketId, loc, ts:Date.now() })
+  doLookup(); updateMobPill()
+}
+
+function renderActivity() {
+  const { total, assigned, unassigned, closed } = DB.getStats()
+  document.getElementById('mob-total').textContent = total
+  document.getElementById('mob-assigned').textContent = assigned
+  document.getElementById('mob-unassigned').textContent = unassigned
+  document.getElementById('mob-closed').textContent = closed
+  document.getElementById('mob-f-assigned').style.width  = total ? Math.round(assigned/total*100)+'%' : '0%'
+  document.getElementById('mob-f-unassigned').style.width= total ? Math.round(unassigned/total*100)+'%': '0%'
+
+  const el = document.getElementById('activity-list')
+  if (!sessionLog.length) {
+    el.innerHTML = `<div style="text-align:center;padding:2rem;font-family:var(--font-mono);font-size:12px;color:var(--mob-sub)">No scans this session</div>`
+    return
+  }
+  el.innerHTML = `<div class="activity-list">${sessionLog.slice(0,30).map(a=>`
+    <div class="act-item">
+      <div class="act-dot ${a.type}"></div>
+      <div class="act-info">
+        <div class="act-id">${escHtml(a.id)}</div>
+        <div class="act-loc">${a.type==='assign'?'→ '+escHtml(a.loc):'Unassigned (was '+escHtml(a.loc)+')'}</div>
+      </div>
+      <div class="act-time">${new Date(a.ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</div>
+    </div>`).join('')}</div>`
+}
+
+function updateMobPill() {
+  const s = DB.getStats()
+  document.getElementById('mob-pill').textContent = s.total + ' active'
+}
+
+
+// ── Live sync: update pill when desktop or another tab changes data ─────────
+if (typeof BroadcastChannel !== 'undefined') {
+  const _mob_ch = new BroadcastChannel('bm_sync')
+  _mob_ch.onmessage = () => updateMobPill()
+}
+window.addEventListener('storage', (e) => {
+  if (e.key && e.key.startsWith('bm_')) updateMobPill()
+})
+
+updateMobPill()
+refreshLocDl()
+setTimeout(() => document.getElementById('a-basket')?.focus(), 300)
+</script>
+</body>
+</html>

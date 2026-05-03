@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Basket Location Manager</title>
+<!-- Google Identity Services — loaded first, synchronously triggers app boot via onload -->
+<script src="https://accounts.google.com/gsi/client" onload="gsiLoaded()"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+:root{
+  --blue-900:#0a1628;--blue-800:#0d2045;--blue-700:#1565c0;--blue-600:#1976d2;
+  --blue-400:#42a5f5;--blue-200:#90caf9;--blue-100:#bbdefb;--blue-50:#e3f2fd;--blue-25:#f0f7ff;
+  --green-800:#1b5e20;--green-100:#c8e6c9;--green-50:#e8f5e9;
+  --orange-800:#bf360c;--orange-600:#e65100;--orange-50:#fff3e0;
+  --red-800:#880e4f;--red-600:#c62828;--red-100:#ffcdd2;--red-50:#fce4ec;
+  --amber-600:#f57f17;
+  --grey-900:#1a1a2e;--grey-700:#37474f;--grey-500:#546e7a;--grey-400:#78909c;
+  --grey-300:#b0bec5;--grey-200:#cfd8dc;--grey-100:#eceff1;--grey-50:#f8f9fb;
+  --white:#ffffff;--bg:#f0f2f5;--surface:#ffffff;--border:#e0e0e0;--border-mid:#cfd8dc;
+  --font-mono:'Courier Prime',monospace;--font-body:'DM Sans',sans-serif;
+  --radius-sm:6px;--radius-md:8px;--radius-lg:12px;--radius-xl:16px;
+  --shadow-sm:0 1px 3px rgba(0,0,0,.07);--shadow-md:0 4px 12px rgba(0,0,0,.10);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:14px}
+body{font-family:var(--font-body);background:var(--bg);color:var(--grey-900);line-height:1.5;-webkit-font-smoothing:antialiased}
+a{text-decoration:none;color:inherit}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--radius-md);font-family:var(--font-body);font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .15s;white-space:nowrap}
+.btn svg{width:15px;height:15px;fill:currentColor;flex-shrink:0}
+.btn-primary{background:var(--blue-700);color:#fff}.btn-primary:hover{background:var(--blue-800)}
+.btn-secondary{background:var(--blue-50);color:var(--blue-700);border:1.5px solid var(--blue-200)}.btn-secondary:hover{background:var(--blue-100)}
+.btn-ghost{background:var(--white);color:var(--grey-700);border:1.5px solid var(--border-mid)}.btn-ghost:hover{background:var(--grey-50)}
+.btn-danger{background:var(--white);color:var(--red-600);border:1.5px solid var(--red-100)}.btn-danger:hover{background:var(--red-50)}
+.btn-sm{padding:5px 11px;font-size:12px}.btn-lg{padding:12px 24px;font-size:15px}
+.btn-mono{font-family:var(--font-mono);font-weight:700}
+
+/* Badges */
+.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-family:var(--font-mono);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.badge::before{content:'';width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.badge-assigned{background:var(--blue-50);color:var(--blue-700);border:1px solid var(--blue-200)}.badge-assigned::before{background:var(--blue-700)}
+.badge-pending{background:var(--orange-50);color:var(--orange-600);border:1px dashed var(--amber-600)}.badge-pending::before{background:var(--orange-600)}
+.badge-closed{background:var(--red-50);color:var(--red-800);border:1px solid var(--red-100)}.badge-closed::before{background:var(--red-800)}
+.badge-id{background:var(--blue-50);color:var(--blue-700)}.badge-id::before{display:none}
+
+/* Fields */
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:11px;font-weight:600;color:var(--grey-500);text-transform:uppercase;letter-spacing:.07em;font-family:var(--font-mono)}
+.field input{padding:9px 13px;border:1.5px solid var(--border-mid);border-radius:var(--radius-md);font-family:var(--font-mono);font-size:13px;color:var(--grey-900);background:var(--white);outline:none;transition:border .12s;width:100%}
+.field input:focus{border-color:var(--blue-700)}.field input::placeholder{color:var(--grey-300)}
+
+/* Cards */
+.card{background:var(--surface);border-radius:var(--radius-lg);border:1px solid var(--border);overflow:hidden}
+.card-head{padding:11px 16px;background:var(--grey-50);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-head-title{font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--blue-700);text-transform:uppercase;letter-spacing:.09em;display:flex;align-items:center;gap:8px}
+.card-head-title svg{width:15px;height:15px;fill:var(--blue-700)}
+.card-body{padding:16px}
+
+/* Table */
+.data-table{width:100%;border-collapse:collapse}
+.data-table th{text-align:left;padding:9px 14px;font-size:10px;font-weight:700;color:var(--grey-500);letter-spacing:.09em;text-transform:uppercase;font-family:var(--font-mono);border-bottom:1px solid var(--border);background:var(--grey-50)}
+.data-table td{padding:10px 14px;border-bottom:1px solid var(--grey-100);font-size:13px;vertical-align:middle}
+.data-table tr:last-child td{border-bottom:none}
+.data-table tr:hover td{background:var(--blue-25)}
+
+/* Toast */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(70px);opacity:0;background:var(--grey-900);color:#fff;padding:10px 20px;border-radius:24px;font-size:12px;font-weight:600;font-family:var(--font-mono);transition:all .22s;pointer-events:none;z-index:9999;white-space:nowrap;box-shadow:var(--shadow-md)}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+.toast.ok{background:var(--green-800)}.toast.err{background:var(--red-600)}.toast.info{background:var(--blue-700)}
+
+/* Stat cards */
+.stat-card{background:var(--surface);border-radius:var(--radius-lg);border:1px solid var(--border);padding:14px 16px}
+.stat-card .s-label{font-size:11px;font-weight:500;color:var(--grey-400);text-transform:uppercase;letter-spacing:.06em;font-family:var(--font-mono)}
+.stat-card .s-val{font-family:var(--font-mono);font-size:30px;font-weight:700;color:var(--grey-900);line-height:1;margin-top:5px}
+.stat-card .s-bar{height:4px;border-radius:2px;margin-top:10px;background:var(--grey-100)}
+.stat-card .s-fill{height:4px;border-radius:2px;transition:width .4s}
+
+/* Occupancy tiles */
+.occ-empty{background:var(--green-50);border-color:var(--green-100)}
+.occ-low{background:var(--blue-50);border-color:var(--blue-200)}
+.occ-mid{background:var(--blue-100);border-color:#64b5f6}
+.occ-high{background:var(--blue-700);border-color:var(--blue-800)}
+.occ-hot{background:var(--orange-600);border-color:var(--orange-800)}
+.occ-pending{background:var(--orange-50);border-color:var(--amber-600);border-style:dashed}
+.occ-empty .tile-id,.occ-empty .tile-loc,.occ-empty .tile-stat{color:var(--green-800)}
+.occ-low .tile-id,.occ-low .tile-loc,.occ-low .tile-stat{color:var(--blue-700)}
+.occ-mid .tile-id,.occ-mid .tile-loc,.occ-mid .tile-stat{color:var(--blue-800)}
+.occ-high .tile-id,.occ-high .tile-loc,.occ-high .tile-stat{color:var(--blue-50)}
+.occ-hot .tile-id,.occ-hot .tile-loc,.occ-hot .tile-stat{color:#fff8f0}
+.occ-pending .tile-id,.occ-pending .tile-loc,.occ-pending .tile-stat{color:var(--orange-600)}
+
+/* Spinner */
+.spinner{display:inline-block;width:16px;height:16px;border:2.5px solid rgba(21,101,192,.2);border-top-color:var(--blue-700);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Auth screen */
+.auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg)}
+.auth-card{background:var(--surface);border-radius:var(--radius-xl);border:1px solid var(--border);padding:40px;max-width:420px;width:100%;text-align:center;box-shadow:var(--shadow-lg)}
+.auth-logo{width:64px;height:64px;border-radius:16px;background:var(--blue-700);display:flex;align-items:center;justify-content:center;margin:0 auto 20px}
+.auth-logo svg{width:32px;height:32px;fill:#fff}
+.auth-title{font-family:var(--font-mono);font-size:22px;font-weight:700;margin-bottom:8px}
+.auth-sub{font-size:13px;color:var(--grey-400);margin-bottom:28px;line-height:1.7}
+.auth-err{background:var(--red-50);color:var(--red-600);border:1px solid var(--red-100);border-radius:var(--radius-md);padding:10px 14px;font-size:12px;font-family:var(--font-mono);margin-top:14px;display:none;text-align:left}
+.btn-google{width:100%;justify-content:center;background:#fff;color:#3c4043;border:1.5px solid #dadce0;font-size:14px;padding:12px 20px;border-radius:var(--radius-md);font-family:var(--font-body)}
+.btn-google:hover{background:#f8f9fa;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.btn-google img{width:18px;height:18px}
+
+/* Loading overlay */
+.loading-overlay{position:fixed;inset:0;background:rgba(240,242,245,.9);display:flex;align-items:center;justify-content:center;z-index:9998;backdrop-filter:blur(3px)}
+.loading-box{background:var(--surface);border-radius:var(--radius-lg);border:1px solid var(--border);padding:28px 36px;text-align:center;box-shadow:var(--shadow-md)}
+.loading-box .spinner{width:28px;height:28px;border-width:3px}
+.loading-box p{font-family:var(--font-mono);font-size:12px;color:var(--grey-500);margin-top:12px}
+
+/* Layout */
+.topbar{background:var(--surface);border-bottom:2px solid var(--blue-700);padding:0 24px;height:58px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:var(--shadow-sm)}
+.brand{display:flex;align-items:center;gap:10px}
+.brand-dot{width:13px;height:13px;border-radius:50%;background:var(--blue-700)}
+.brand-title{font-family:var(--font-mono);font-size:18px;font-weight:700;letter-spacing:-.3px}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.pill{display:flex;align-items:center;gap:6px;background:var(--blue-50);border:1px solid var(--blue-200);border-radius:20px;padding:5px 12px;font-size:11px;font-weight:600;color:var(--blue-700);font-family:var(--font-mono);transition:background .3s}
+.pill.synced{background:var(--green-50);border-color:var(--green-100);color:var(--green-800)}
+.pill-dot{width:6px;height:6px;border-radius:50%;background:var(--blue-700);flex-shrink:0}
+.user-chip{background:var(--grey-50);border:1px solid var(--border-mid);border-radius:20px;padding:4px 12px;font-size:11px;color:var(--grey-500);font-family:var(--font-mono)}
+
+.nav-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex}
+.nav-tab{padding:13px 18px;font-size:13px;font-weight:500;color:var(--grey-500);cursor:pointer;border:none;background:transparent;border-bottom:3px solid transparent;margin-bottom:-1px;font-family:var(--font-body);transition:all .14s;display:flex;align-items:center;gap:7px}
+.nav-tab svg{width:15px;height:15px;fill:currentColor}
+.nav-tab.on{color:var(--blue-700);border-bottom-color:var(--blue-700);font-weight:600}
+.nav-tab:hover:not(.on){color:var(--grey-900);background:var(--grey-50)}
+
+.main{padding:24px;max-width:1280px;margin:0 auto}
+.pane{display:none}.pane.on{display:block}
+
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+.add-row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+.add-row .field{min-width:140px}.add-row .field:nth-child(2){flex:1;min-width:180px}
+
+.legend-row{display:flex;align-items:center;gap:16px;margin-bottom:16px;flex-wrap:wrap}
+.leg{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--grey-500);font-family:var(--font-mono)}
+.leg-box{width:16px;height:16px;border-radius:4px;border:1.5px solid transparent}
+.zone-label{font-family:var(--font-mono);font-size:11px;font-weight:700;color:var(--grey-400);letter-spacing:.13em;text-transform:uppercase;margin:18px 0 10px;padding-left:2px}
+.basket-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;margin-bottom:6px}
+.tile{border-radius:var(--radius-lg);padding:13px 11px;cursor:pointer;border:2px solid transparent;transition:all .14s;min-height:78px;display:flex;flex-direction:column;justify-content:space-between}
+.tile:hover{transform:translateY(-2px);box-shadow:var(--shadow-sm)}
+.tile-id{font-family:var(--font-mono);font-size:14px;font-weight:700;line-height:1.1}
+.tile-loc{font-family:var(--font-mono);font-size:11px;margin-top:3px;opacity:.8}
+.tile-stat{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;opacity:.7}
+
+.detail-panel{background:var(--surface);border-radius:var(--radius-lg);border:2px solid var(--blue-700);padding:20px;margin-top:14px;animation:slideIn .18s ease}
+@keyframes slideIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.detail-title{font-family:var(--font-mono);font-size:14px;font-weight:700;color:var(--blue-700);margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
+.close-btn{background:none;border:none;font-size:20px;cursor:pointer;color:var(--grey-400)}
+.detail-meta{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.dm{background:var(--grey-50);border-radius:var(--radius-md);padding:10px 12px}
+.dm-label{font-size:10px;font-weight:700;color:var(--grey-400);text-transform:uppercase;letter-spacing:.07em;font-family:var(--font-mono);margin-bottom:3px}
+.dm-val{font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--grey-900)}
+.detail-actions{display:flex;gap:8px;align-items:flex-end}
+.detail-actions .field{flex:1}
+
+.mobile-banner{background:linear-gradient(135deg,var(--blue-800),var(--blue-600));border-radius:var(--radius-lg);padding:18px 22px;margin-bottom:22px;display:flex;align-items:center;justify-content:space-between;gap:14px}
+.mb-left{display:flex;align-items:center;gap:14px}
+.mb-icon{width:42px;height:42px;background:rgba(255,255,255,.15);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.mb-icon svg{width:22px;height:22px;fill:#fff}
+.mb-title{font-family:var(--font-mono);font-size:14px;font-weight:700;color:#fff}
+.mb-sub{font-size:12px;color:var(--blue-100);margin-top:3px;font-family:var(--font-mono)}
+.mb-btn{background:#fff;color:var(--blue-700);border:none;padding:9px 18px;border-radius:var(--radius-md);font-family:var(--font-mono);font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0}
+.mb-btn:hover{background:var(--blue-50)}
+
+.bk-hero{background:var(--surface);border-radius:var(--radius-lg);border:1px solid var(--border);padding:26px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:20px}
+.bk-left{display:flex;align-items:center;gap:16px}
+.bk-icon{width:52px;height:52px;border-radius:var(--radius-lg);background:var(--blue-50);border:1px solid var(--blue-200);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.bk-icon svg{width:26px;height:26px;fill:var(--blue-700)}
+.bk-title{font-family:var(--font-mono);font-size:17px;font-weight:700}
+.bk-sub{font-size:12px;color:var(--grey-400);margin-top:4px;font-family:var(--font-mono)}
+.export-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;margin-bottom:22px}
+.export-card{background:var(--surface);border-radius:var(--radius-lg);border:1.5px solid var(--border);padding:18px;cursor:pointer;transition:all .15s;display:flex;flex-direction:column;gap:8px}
+.export-card:hover{border-color:var(--blue-700);background:var(--blue-25);box-shadow:var(--shadow-sm)}
+.export-card-icon{width:36px;height:36px;border-radius:var(--radius-md);background:var(--blue-50);display:flex;align-items:center;justify-content:center}
+.export-card-icon svg{width:18px;height:18px;fill:var(--blue-700)}
+.export-card-title{font-family:var(--font-mono);font-size:13px;font-weight:700}
+.export-card-sub{font-size:12px;color:var(--grey-400);font-family:var(--font-mono)}
+.sheet-bar{background:var(--green-50);border:1px solid var(--green-100);border-radius:var(--radius-md);padding:10px 16px;display:flex;align-items:center;gap:10px;margin-bottom:20px;font-family:var(--font-mono);font-size:12px;color:var(--green-800)}
+.sheet-bar svg{width:14px;height:14px;fill:var(--green-800);flex-shrink:0}
+.sheet-bar a{color:var(--blue-700);font-weight:700;text-decoration:underline}
+.empty-state{padding:2.5rem;text-align:center;color:var(--grey-300)}
+.empty-state svg{width:38px;height:38px;fill:currentColor;margin-bottom:10px;display:block;margin-left:auto;margin-right:auto}
+.empty-state p{font-family:var(--font-mono);font-size:13px}
+.section-label{font-family:var(--font-mono);font-size:11px;font-weight:700;color:var(--grey-500);text-transform:uppercase;letter-spacing:.09em;margin-bottom:12px}
+.mono{font-family:var(--font-mono)}
+</style>
+</head>
+<body>
+
+<!-- AUTH SCREEN -->
+<div id="auth-screen" class="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo"><svg viewBox="0 0 24 24"><path d="M7 4h10l2 4H5L7 4zm-4 5h18v11H3V9zm5 2v5h2v-5H8zm3 0v5h2v-5h-2zm3 0v5h2v-5h-2z"/></svg></div>
+    <div class="auth-title">Basket Location Manager</div>
+    <div class="auth-sub">Sign in with Google to access your live basket data stored in Google Sheets. No data is stored anywhere else.</div>
+    <button class="btn btn-google" id="sign-in-btn" onclick="signIn()" disabled style="opacity:.55;cursor:not-allowed">
+      <svg viewBox="0 0 48 48" style="width:18px;height:18px;flex-shrink:0"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.29-8.16 2.29-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+      <span id="sign-in-label">Loading Google Sign-In…</span>
+    </button>
+    <div class="auth-err" id="auth-err"></div>
+  </div>
+</div>
+
+<!-- LOADING OVERLAY -->
+<div class="loading-overlay" id="loading-overlay" style="display:none">
+  <div class="loading-box">
+    <div class="spinner"></div>
+    <p id="loading-msg">Loading…</p>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="main-app" style="display:none">
+<div class="topbar">
+  <div class="brand"><div class="brand-dot"></div><span class="brand-title">Basket Location Manager</span></div>
+  <div class="topbar-right">
+    <div class="pill" id="pill"><div class="pill-dot"></div><span id="pill-label">Loading…</span></div>
+    <div class="user-chip" id="user-chip">—</div>
+    <button class="btn btn-ghost btn-sm btn-mono" onclick="refreshData()">
+      <svg viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+      Refresh
+    </button>
+    <button class="btn btn-danger btn-sm btn-mono" onclick="doSignOut()">Sign out</button>
+  </div>
+</div>
+<nav class="nav-bar">
+  <button class="nav-tab on" onclick="sw('map')"><svg viewBox="0 0 24 24"><path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z"/></svg>Map view</button>
+  <button class="nav-tab" onclick="sw('list')"><svg viewBox="0 0 24 24"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>List view</button>
+  <button class="nav-tab" onclick="sw('search')"><svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>Search</button>
+  <button class="nav-tab" onclick="sw('closed')"><svg viewBox="0 0 24 24"><path d="M20 6h-2.18c.07-.44.18-.86.18-1a3 3 0 0 0-6 0c0 .14.11.56.18 1H9c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2z"/></svg>Closed</button>
+  <button class="nav-tab" onclick="sw('backup')"><svg viewBox="0 0 24 24"><path d="M5 20h14v-2H5v2zm7-18v10.17l3.59-3.58L17 10l-5 5-5-5 1.41-1.41L13 12.17V2h-1z"/></svg>Export</button>
+</nav>
+<main class="main">
+
+  <!-- MAP -->
+  <div id="p-map" class="pane on">
+    <div class="mobile-banner">
+      <div class="mb-left">
+        <div class="mb-icon"><svg viewBox="0 0 24 24"><path d="M17 1H7C5.9 1 5 1.9 5 3v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-2-2-2zm0 18H7V5h10v14zm-5 2c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/></svg></div>
+        <div><div class="mb-title">Scanner / Mobile view</div><div class="mb-sub">Scan basket & location barcodes — writes live to Google Sheets</div></div>
+      </div>
+      <button class="mb-btn" onclick="window.open('basket-scanner.html','_blank')">Open mobile screen →</button>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="s-label">Total</div><div class="s-val" id="s-total">—</div><div class="s-bar"><div class="s-fill" id="f-total" style="width:100%;background:var(--blue-700)"></div></div></div>
+      <div class="stat-card"><div class="s-label">Assigned</div><div class="s-val" id="s-assigned">—</div><div class="s-bar"><div class="s-fill" id="f-assigned" style="background:var(--green-800);width:0%"></div></div></div>
+      <div class="stat-card"><div class="s-label">Unassigned</div><div class="s-val" id="s-unassigned">—</div><div class="s-bar"><div class="s-fill" id="f-unassigned" style="background:var(--orange-600);width:0%"></div></div></div>
+      <div class="stat-card"><div class="s-label">Closed</div><div class="s-val" id="s-closed">—</div><div class="s-bar"><div class="s-fill" id="f-closed" style="background:var(--red-600);width:0%"></div></div></div>
+    </div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-head"><div class="card-head-title"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>Add basket</div></div>
+      <div class="card-body">
+        <div class="add-row">
+          <div class="field" style="width:150px"><label>Basket ID</label><input id="new-bid" placeholder="BKT-001"/></div>
+          <div class="field"><label>Location (optional)</label><input id="new-loc" placeholder="Aisle 3 · Shelf B" list="loc-dl"/><datalist id="loc-dl"></datalist></div>
+          <button class="btn btn-primary btn-mono" onclick="addBasket()" style="align-self:flex-end">+ Add basket</button>
+        </div>
+      </div>
+    </div>
+    <div class="legend-row">
+      <div class="leg"><div class="leg-box occ-empty"></div>Empty</div>
+      <div class="leg"><div class="leg-box occ-low"></div>Low</div>
+      <div class="leg"><div class="leg-box occ-mid"></div>Medium</div>
+      <div class="leg"><div class="leg-box occ-high"></div>High</div>
+      <div class="leg"><div class="leg-box occ-hot"></div>Hot</div>
+      <div class="leg"><div class="leg-box occ-pending"></div>Unassigned</div>
+    </div>
+    <div id="map-zones"></div>
+    <div id="basket-detail"></div>
+  </div>
+
+  <!-- LIST -->
+  <div id="p-list" class="pane">
+    <div class="card">
+      <div class="card-head"><div class="card-head-title">Active baskets</div><span id="list-count" class="mono" style="font-size:12px;color:var(--grey-400)">—</span></div>
+      <div style="overflow-x:auto">
+        <table class="data-table" style="min-width:600px">
+          <thead><tr><th style="width:140px">Basket ID</th><th>Location</th><th style="width:100px">Status</th><th style="width:130px">Created</th><th style="width:170px">Actions</th></tr></thead>
+          <tbody id="list-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEARCH -->
+  <div id="p-search" class="pane">
+    <div style="position:relative;margin-bottom:16px">
+      <svg style="position:absolute;left:13px;top:50%;transform:translateY(-50%);width:17px;height:17px;fill:var(--grey-300)" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+      <input id="srch" oninput="doSearch()" placeholder="Search basket ID or location…" style="width:100%;padding:11px 14px 11px 42px;border:2px solid var(--border-mid);border-radius:var(--radius-lg);font-family:var(--font-mono);font-size:14px;outline:none;background:var(--surface);transition:border .14s" onfocus="this.style.borderColor='var(--blue-700)'" onblur="this.style.borderColor='var(--border-mid)'"/>
+    </div>
+    <div id="srch-out"></div>
+  </div>
+
+  <!-- CLOSED -->
+  <div id="p-closed" class="pane">
+    <div class="card">
+      <div class="card-head"><div class="card-head-title">Closed baskets</div><button class="btn btn-ghost btn-sm" onclick="doExport('closed')">Export CSV</button></div>
+      <div style="overflow-x:auto">
+        <table class="data-table" style="min-width:500px">
+          <thead><tr><th style="width:140px">Basket ID</th><th>Last location</th><th style="width:130px">Closed at</th><th style="width:100px">Action</th></tr></thead>
+          <tbody id="closed-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- EXPORT -->
+  <div id="p-backup" class="pane">
+    <div class="sheet-bar">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+      Data stored live in Google Sheets —
+      <a href="https://docs.google.com/spreadsheets/d/1olGseHlcK7HABx_iDJ3pAS2wSNt_cIGsHtuH-FNavCY/edit" target="_blank">Open your sheet ↗</a>
+    </div>
+    <div class="bk-hero">
+      <div class="bk-left">
+        <div class="bk-icon"><svg viewBox="0 0 24 24"><path d="M5 20h14v-2H5v2zm7-18v10.17l3.59-3.58L17 10l-5 5-5-5 1.41-1.41L13 12.17V2h-1z"/></svg></div>
+        <div><div class="bk-title">Export to CSV</div><div class="bk-sub">Download a snapshot of your Google Sheet data at any time</div></div>
+      </div>
+      <button class="btn btn-primary btn-lg btn-mono" onclick="doExport('full')">Full export</button>
+    </div>
+    <div class="section-label">Export options</div>
+    <div class="export-grid">
+      <div class="export-card" onclick="doExport('full')"><div class="export-card-icon"><svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4c-2.89 0-5.4 1.64-6.65 4.04C2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/></svg></div><div class="export-card-title">Full backup</div><div class="export-card-sub">Active + closed baskets</div></div>
+      <div class="export-card" onclick="doExport('allocation')"><div class="export-card-icon"><svg viewBox="0 0 24 24"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg></div><div class="export-card-title">Allocation only</div><div class="export-card-sub">Active baskets + locations</div></div>
+      <div class="export-card" onclick="doExport('assigned')"><div class="export-card-icon"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div><div class="export-card-title">Assigned only</div><div class="export-card-sub">Baskets with a location</div></div>
+      <div class="export-card" onclick="doExport('closed')"><div class="export-card-icon"><svg viewBox="0 0 24 24"><path d="M20 6h-2.18c.07-.44.18-.86.18-1a3 3 0 0 0-6 0c0 .14.11.56.18 1H9c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2z"/></svg></div><div class="export-card-title">Closed baskets</div><div class="export-card-sub">Unassigned basket history</div></div>
+    </div>
+  </div>
+
+</main>
+</div><!-- /#main-app -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ════════════════════════════════════════════════════════════════
+//  CONFIG
+// ════════════════════════════════════════════════════════════════
+const SHEET_ID    = '1olGseHlcK7HABx_iDJ3pAS2wSNt_cIGsHtuH-FNavCY';
+const CLIENT_ID   = '45795665287-lkln50v0b1jc4pn79eumpg9cnubp55e4.apps.googleusercontent.com';
+const SCOPES      = 'https://www.googleapis.com/auth/spreadsheets';
+const ALLOC       = 'Basket Allocation';
+const CLOSED_TAB  = 'Closed Baskets';
+const API         = 'https://sheets.googleapis.com/v4/spreadsheets/' + SHEET_ID;
+
+// ════════════════════════════════════════════════════════════════
+//  AUTH  — called by GSI script onload attribute
+// ════════════════════════════════════════════════════════════════
+let _token = null, _tokenExpiry = 0, _tokenClient = null;
+
+function gsiLoaded() {
+  _tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPES,
+    callback: handleTokenResponse,
+  });
+  // Enable the sign-in button now that GSI is ready
+  const btn = document.getElementById('sign-in-btn');
+  const lbl = document.getElementById('sign-in-label');
+  if (btn) { btn.disabled = false; btn.style.opacity = ''; btn.style.cursor = ''; }
+  if (lbl) lbl.textContent = 'Sign in with Google';
+}
+
+function handleTokenResponse(resp) {
+  if (resp.error) {
+    document.getElementById('auth-err').style.display = 'block';
+    document.getElementById('auth-err').textContent = 'Sign-in error: ' + resp.error;
+    return;
+  }
+  _token = resp.access_token;
+  _tokenExpiry = Date.now() + (resp.expires_in - 60) * 1000;
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('main-app').style.display = 'block';
+  refreshData();
+}
+
+function signIn() {
+  if (!_tokenClient) return; // button should be disabled, but guard anyway
+  document.getElementById('auth-err').style.display = 'none';
+  _tokenClient.requestAccessToken({ prompt: '' });
+}
+
+function doSignOut() {
+  if (_token) google.accounts.oauth2.revoke(_token, () => {});
+  _token = null; _tokenExpiry = 0;
+  _baskets = []; _closed = [];
+  document.getElementById('main-app').style.display = 'none';
+  document.getElementById('auth-screen').style.display = 'flex';
+}
+
+function ensureToken() {
+  if (_token && Date.now() < _tokenExpiry) return Promise.resolve();
+  return new Promise((resolve) => {
+    _tokenClient.callback = (resp) => { handleTokenResponse(resp); resolve(); };
+    _tokenClient.requestAccessToken({ prompt: '' });
+  });
+}
+
+// ════════════════════════════════════════════════════════════════
+//  SHEETS API HELPERS
+// ════════════════════════════════════════════════════════════════
+async function apiGet(range) {
+  await ensureToken();
+  const r = await fetch(`${API}/values/${encodeURIComponent(range)}`, {
+    headers: { Authorization: 'Bearer ' + _token }
+  });
+  if (!r.ok) { const e = await r.json(); throw new Error(e.error?.message || 'Read failed'); }
+  return r.json();
+}
+
+async function apiAppend(tab, values) {
+  await ensureToken();
+  const r = await fetch(`${API}/values/${encodeURIComponent(tab)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`, {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + _token, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ majorDimension: 'ROWS', values }),
+  });
+  if (!r.ok) { const e = await r.json(); throw new Error(e.error?.message || 'Append failed'); }
+  return r.json();
+}
+
+async function apiUpdate(range, values) {
+  await ensureToken();
+  const r = await fetch(`${API}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`, {
+    method: 'PUT',
+    headers: { Authorization: 'Bearer ' + _token, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ range, majorDimension: 'ROWS', values }),
+  });
+  if (!r.ok) { const e = await r.json(); throw new Error(e.error?.message || 'Update failed'); }
+  return r.json();
+}
+
+let _sheetIds = null;
+async function getSheetIds() {
+  if (_sheetIds) return _sheetIds;
+  await ensureToken();
+  const r = await fetch(`${API}?fields=sheets(properties(sheetId,title))`, {
+    headers: { Authorization: 'Bearer ' + _token }
+  });
+  const d = await r.json();
+  _sheetIds = {};
+  (d.sheets || []).forEach(s => _sheetIds[s.properties.title] = s.properties.sheetId);
+  return _sheetIds;
+}
+
+async function apiDeleteRow(tabName, rowIndex0) {
+  await ensureToken();
+  const ids = await getSheetIds();
+  const sheetId = ids[tabName];
+  if (sheetId === undefined) throw new Error('Tab not found: ' + tabName);
+  const r = await fetch(`${API}:batchUpdate`, {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + _token, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ requests: [{ deleteDimension: { range: { sheetId, dimension: 'ROWS', startIndex: rowIndex0, endIndex: rowIndex0 + 1 } } }] }),
+  });
+  if (!r.ok) { const e = await r.json(); throw new Error(e.error?.message || 'Delete row failed'); }
+  return r.json();
+}
+
+// ════════════════════════════════════════════════════════════════
+//  DATA HELPERS
+// ════════════════════════════════════════════════════════════════
+function parseRows(rows) {
+  if (!rows || rows.length < 2) return [];
+  const headers = rows[0].map(h => h.toLowerCase().trim().replace(/\s+/g,'_'));
+  return rows.slice(1).map((row, i) => {
+    const obj = { _row: i + 2 };
+    headers.forEach((h, j) => obj[h] = (row[j] || '').trim());
+    return obj;
+  }).filter(r => r[headers[0]]);
+}
+
+function nowStr() { return new Date().toLocaleString(); }
+
+function escHtml(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function getLocSuggestions() {
+  const s = new Set();
+  _baskets.forEach(b => b.location && s.add(b.location));
+  _closed.forEach(b => b.last_location && s.add(b.last_location));
+  return [...s].sort();
+}
+
+// ════════════════════════════════════════════════════════════════
+//  APP STATE
+// ════════════════════════════════════════════════════════════════
+let _baskets = [], _closed = [], _activeDetail = null;
+
+// ════════════════════════════════════════════════════════════════
+//  UI HELPERS
+// ════════════════════════════════════════════════════════════════
+function toast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast show ' + type;
+  setTimeout(() => t.className = 'toast', 2800);
+}
+function showLoad(msg = 'Saving to Google Sheets…') {
+  document.getElementById('loading-msg').textContent = msg;
+  document.getElementById('loading-overlay').style.display = 'flex';
+}
+function hideLoad() { document.getElementById('loading-overlay').style.display = 'none'; }
+
+// ════════════════════════════════════════════════════════════════
+//  DATA LOAD
+// ════════════════════════════════════════════════════════════════
+async function refreshData() {
+  showLoad('Loading from Google Sheets…');
+  try {
+    const [allocRes, closedRes] = await Promise.all([
+      apiGet(ALLOC + '!A:D'),
+      apiGet(CLOSED_TAB + '!A:D'),
+    ]);
+    _baskets = parseRows(allocRes.values || []);
+    _closed  = parseRows(closedRes.values || []);
+    _sheetIds = null; // reset cache
+    updateStats();
+    refreshDL();
+    const activePane = [...document.querySelectorAll('.pane')].find(p => p.classList.contains('on'));
+    if (activePane?.id === 'p-map')    renderMap();
+    if (activePane?.id === 'p-list')   renderList();
+    if (activePane?.id === 'p-closed') renderClosed();
+    // Flash sync indicator
+    const pill = document.getElementById('pill');
+    pill.classList.add('synced');
+    setTimeout(() => pill.classList.remove('synced'), 1200);
+  } catch(e) {
+    toast('Error: ' + e.message, 'err');
+    console.error(e);
+  } finally { hideLoad(); }
+}
+
+// ════════════════════════════════════════════════════════════════
+//  STATS
+// ════════════════════════════════════════════════════════════════
+function updateStats() {
+  const total      = _baskets.length;
+  const assigned   = _baskets.filter(b => b.location).length;
+  const unassigned = _baskets.filter(b => !b.location).length;
+  const closed     = _closed.length;
+  document.getElementById('s-total').textContent     = total;
+  document.getElementById('s-assigned').textContent  = assigned;
+  document.getElementById('s-unassigned').textContent= unassigned;
+  document.getElementById('s-closed').textContent    = closed;
+  document.getElementById('f-assigned').style.width  = total ? Math.round(assigned/total*100)+'%'  : '0%';
+  document.getElementById('f-unassigned').style.width= total ? Math.round(unassigned/total*100)+'%': '0%';
+  const all = total + closed;
+  document.getElementById('f-closed').style.width    = all ? Math.round(closed/all*100)+'%' : '0%';
+  document.getElementById('pill-label').textContent  = `${total+closed} records`;
+}
+function refreshDL() {
+  const dl = document.getElementById('loc-dl');
+  if (dl) dl.innerHTML = getLocSuggestions().map(l=>`<option value="${escHtml(l)}">`).join('');
+}
+
+// ════════════════════════════════════════════════════════════════
+//  NAVIGATION
+// ════════════════════════════════════════════════════════════════
+function sw(tab) {
+  const tabs = ['map','list','search','closed','backup'];
+  document.querySelectorAll('.nav-tab').forEach((el,i) => el.classList.toggle('on', tabs[i]===tab));
+  document.querySelectorAll('.pane').forEach(el => el.classList.remove('on'));
+  document.getElementById('p-'+tab).classList.add('on');
+  if (tab==='map')    renderMap();
+  if (tab==='list')   renderList();
+  if (tab==='closed') renderClosed();
+}
+
+// ════════════════════════════════════════════════════════════════
+//  MAP VIEW
+// ════════════════════════════════════════════════════════════════
+function getOccClass(b) {
+  if (!b.location) return 'occ-pending';
+  const h = (parseInt((b.basket_id||'').replace(/\D/g,''))||0)*13 + (b.basket_id||'').length*7;
+  const r = h%100;
+  return r<15?'occ-empty':r<40?'occ-low':r<65?'occ-mid':r<85?'occ-high':'occ-hot';
+}
+function getZones() {
+  const z={};
+  _baskets.forEach(b => {
+    const loc = b.location||'Unassigned';
+    const zone = loc.match(/\d{3}/)?'Zone '+loc.match(/\d{3}/)[0].slice(0,1)+'00–'+loc.match(/\d{3}/)[0].slice(0,1)+'99'
+      :loc==='Unassigned'?'Unassigned':loc.toLowerCase().includes('aisle')?'Aisle section':'General';
+    if(!z[zone])z[zone]=[];z[zone].push(b);
+  });
+  if(!Object.keys(z).length)z['General']=[];
+  return z;
+}
+function renderMap() {
+  updateStats(); refreshDL();
+  const zones = getZones();
+  let html='';
+  for(const [zone,list] of Object.entries(zones)){
+    html+=`<div class="zone-label">${escHtml(zone)}</div><div class="basket-grid">`;
+    list.forEach(b=>{
+      const cls=getOccClass(b);
+      html+=`<div class="tile ${cls}" onclick="toggleDetail('${escHtml(b.basket_id)}')">
+        <div><div class="tile-id">${escHtml(b.basket_id)}</div><div class="tile-loc">${b.location?escHtml(b.location):'No location'}</div></div>
+        <div class="tile-stat">${b.location?cls.replace('occ-',''):'unassigned'}</div>
+      </div>`;
+    });
+    html+='</div>';
+  }
+  if(!_baskets.length) html=`<div class="empty-state"><svg viewBox="0 0 24 24"><path d="M7 4h10l2 4H5L7 4zm-4 5h18v11H3V9z"/></svg><p>No baskets yet — add one above</p></div>`;
+  document.getElementById('map-zones').innerHTML=html;
+  if(_activeDetail) renderDetail(_activeDetail); else document.getElementById('basket-detail').innerHTML='';
+}
+function toggleDetail(id){
+  if(_activeDetail===id){_activeDetail=null;document.getElementById('basket-detail').innerHTML='';return;}
+  _activeDetail=id; renderDetail(id);
+}
+function renderDetail(id){
+  const b=_baskets.find(x=>x.basket_id===id);
+  if(!b){document.getElementById('basket-detail').innerHTML='';_activeDetail=null;return;}
+  const cls=getOccClass(b);
+  const opts=getLocSuggestions().map(l=>`<option value="${escHtml(l)}">`).join('');
+  document.getElementById('basket-detail').innerHTML=`
+  <div class="detail-panel">
+    <div class="detail-title"><span>Basket · ${escHtml(b.basket_id)}</span>
+      <button class="close-btn" onclick="_activeDetail=null;document.getElementById('basket-detail').innerHTML=''">✕</button>
+    </div>
+    <div class="detail-meta">
+      <div class="dm"><div class="dm-label">Location</div><div class="dm-val">${b.location?escHtml(b.location):'—'}</div></div>
+      <div class="dm"><div class="dm-label">Occupancy</div><div class="dm-val">${b.location?cls.replace('occ-','').toUpperCase():'UNASSIGNED'}</div></div>
+      <div class="dm"><div class="dm-label">Created</div><div class="dm-val">${escHtml(b.created_at||'—')}</div></div>
+      <div class="dm"><div class="dm-label">Last assigned</div><div class="dm-val">${escHtml(b.assigned_at||'—')}</div></div>
+    </div>
+    <div class="detail-actions">
+      <div class="field"><label>Assign / change location</label>
+        <input id="det-loc" value="${b.location?escHtml(b.location):''}" placeholder="e.g. Aisle 3 · Shelf B" list="det-dl"/>
+        <datalist id="det-dl">${opts}</datalist>
+      </div>
+      <button class="btn btn-primary btn-mono" onclick="assignFromDetail('${escHtml(b.basket_id)}',${b._row})">Assign</button>
+      ${b.location?`<button class="btn btn-danger btn-mono" onclick="unassignBasket('${escHtml(b.basket_id)}')">Unassign</button>`:''}
+    </div>
+  </div>`;
+}
+async function assignFromDetail(id, rowNum){
+  const loc=document.getElementById('det-loc')?.value.trim();
+  if(!loc){toast('Enter a location','err');return;}
+  showLoad();
+  try{
+    await apiUpdate(`${ALLOC}!B${rowNum}`  , [[loc]]);
+    await apiUpdate(`${ALLOC}!D${rowNum}`  , [[nowStr()]]);
+    await refreshData(); renderDetail(id);
+    toast('Assigned → '+loc,'ok');
+  }catch(e){toast('Error: '+e.message,'err');}finally{hideLoad();}
+}
+
+// ════════════════════════════════════════════════════════════════
+//  ADD BASKET
+// ════════════════════════════════════════════════════════════════
+async function addBasket(){
+  const id=document.getElementById('new-bid').value.trim();
+  const loc=document.getElementById('new-loc').value.trim();
+  if(!id){toast('Enter a basket ID','err');return;}
+  if(_baskets.find(b=>b.basket_id===id)){toast('Basket ID already exists','err');return;}
+  showLoad('Adding basket…');
+  try{
+    await apiAppend(ALLOC, [[id, loc||'', nowStr(), loc?nowStr():'']]);
+    document.getElementById('new-bid').value='';
+    document.getElementById('new-loc').value='';
+    await refreshData();
+    toast('Basket '+id+' added'+(loc?' → '+loc:''),'ok');
+  }catch(e){toast('Error: '+e.message,'err');}finally{hideLoad();}
+}
+
+// ════════════════════════════════════════════════════════════════
+//  UNASSIGN
+// ════════════════════════════════════════════════════════════════
+async function unassignBasket(id){
+  const b=_baskets.find(x=>x.basket_id===id);
+  if(!b)return;
+  if(!confirm('Move basket '+id+' to Closed?'))return;
+  showLoad('Moving to Closed Baskets…');
+  try{
+    await apiAppend(CLOSED_TAB, [[b.basket_id, b.location||'', b.created_at||'', nowStr()]]);
+    await apiDeleteRow(ALLOC, b._row-1);
+    _activeDetail=null;
+    await refreshData();
+    toast('Basket '+id+' moved to Closed','ok');
+  }catch(e){toast('Error: '+e.message,'err');}finally{hideLoad();}
+}
+
+// ════════════════════════════════════════════════════════════════
+//  LIST VIEW
+// ════════════════════════════════════════════════════════════════
+function renderList(){
+  document.getElementById('list-count').textContent=_baskets.length+' records';
+  const opts=getLocSuggestions().map(l=>`<option value="${escHtml(l)}">`).join('');
+  const tb=document.getElementById('list-tbody');
+  if(!_baskets.length){tb.innerHTML=`<tr><td colspan="5" class="empty-state" style="padding:2rem"><p>No active baskets</p></td></tr>`;return;}
+  tb.innerHTML=_baskets.map(b=>`<tr>
+    <td><span class="badge badge-id">${escHtml(b.basket_id)}</span></td>
+    <td style="font-family:var(--font-mono);font-size:12px">
+      ${b.location?escHtml(b.location):`<div style="display:flex;gap:6px;align-items:center">
+        <input id="li-${escHtml(b.basket_id)}" list="li-dl-${escHtml(b.basket_id)}" placeholder="Enter location" style="padding:5px 9px;border:1.5px solid var(--border-mid);border-radius:var(--radius-sm);font-family:var(--font-mono);font-size:12px;outline:none;width:150px"/>
+        <datalist id="li-dl-${escHtml(b.basket_id)}">${opts}</datalist>
+        <button class="btn btn-secondary btn-sm btn-mono" onclick="assignFromList('${escHtml(b.basket_id)}',${b._row})">Assign</button>
+      </div>`}
+    </td>
+    <td><span class="badge ${b.location?'badge-assigned':'badge-pending'}">${b.location?'Assigned':'Pending'}</span></td>
+    <td style="font-size:11px;color:var(--grey-400);font-family:var(--font-mono)">${escHtml(b.created_at||'—')}</td>
+    <td><div style="display:flex;gap:6px">
+      ${b.location
+        ?`<button class="btn btn-ghost btn-sm btn-mono" onclick="editLoc('${escHtml(b.basket_id)}',${b._row})">Edit</button>
+           <button class="btn btn-danger btn-sm btn-mono" onclick="unassignBasket('${escHtml(b.basket_id)}')">Unassign</button>`
+        :`<button class="btn btn-danger btn-sm btn-mono" onclick="deleteBasket('${escHtml(b.basket_id)}')">Delete</button>`}
+    </div></td>
+  </tr>`).join('');
+}
+async function assignFromList(id,rowNum){
+  const loc=document.getElementById('li-'+id)?.value.trim();
+  if(!loc){toast('Enter a location','err');return;}
+  showLoad();
+  try{
+    await apiUpdate(`${ALLOC}!B${rowNum}`,[[loc]]);
+    await apiUpdate(`${ALLOC}!D${rowNum}`,[[nowStr()]]);
+    await refreshData(); toast('Assigned → '+loc,'ok');
+  }catch(e){toast('Error: '+e.message,'err');}finally{hideLoad();}
+}
+async function editLoc(id,rowNum){
+  const b=_baskets.find(x=>x.basket_id===id);
+  if(!b)return;
+  const n=prompt('Edit location for '+id+':',b.location||'');
+  if(n===null)return;
+  showLoad();
+  try{
+    await apiUpdate(`${ALLOC}!B${rowNum}`,[[n.trim()]]);
+    await apiUpdate(`${ALLOC}!D${rowNum}`,[[nowStr()]]);
+    await refreshData(); toast('Location updated','ok');
+  }catch(e){toast('Error: '+e.message,'err');}finally{hideLoad();}
+}
+async function deleteBasket(id){
+  const b=_baskets.find(x=>x.basket_id===id);
+  if(!b||!confirm('Delete basket '+id+'? This cannot be undone.'))return;
+  showLoad('Deleting…');
+  try{
+    await apiDeleteRow(ALLOC,b._row-1);
+    await refreshData(); toast('Deleted '+id);
+  }catch(e){toast('Error: '+e.message,'err');}finally{hideLoad();}
+}
+
+// ════════════════════════════════════════════════════════════════
+//  CLOSED VIEW
+// ════════════════════════════════════════════════════════════════
+function renderClosed(){
+  const tb=document.getElementById('closed-tbody');
+  if(!_closed.length){tb.innerHTML=`<tr><td colspan="4" class="empty-state" style="padding:2rem"><p>No closed baskets</p></td></tr>`;return;}
+  tb.innerHTML=_closed.map(b=>`<tr>
+    <td><span class="badge badge-id" style="color:var(--red-800);background:var(--red-50);border-color:var(--red-100)">${escHtml(b.basket_id)}</span></td>
+    <td style="font-family:var(--font-mono);font-size:12px">${escHtml(b.last_location||'—')}</td>
+    <td style="font-size:11px;color:var(--grey-400);font-family:var(--font-mono)">${escHtml(b.closed_at||'—')}</td>
+    <td><button class="btn btn-ghost btn-sm btn-mono" onclick="reopenBasket('${escHtml(b.basket_id)}')">Reopen</button></td>
+  </tr>`).join('');
+}
+async function reopenBasket(id){
+  const b=_closed.find(x=>x.basket_id===id);
+  if(!b)return;
+  showLoad('Reopening…');
+  try{
+    await apiAppend(ALLOC,[[b.basket_id,'',b.created_at||'','']]);
+    await apiDeleteRow(CLOSED_TAB,b._row-1);
+    await refreshData(); toast('Basket '+id+' reopened','ok');
+  }catch(e){toast('Error: '+e.message,'err');}finally{hideLoad();}
+}
+
+// ════════════════════════════════════════════════════════════════
+//  SEARCH
+// ════════════════════════════════════════════════════════════════
+function doSearch(){
+  const q=document.getElementById('srch').value.trim().toLowerCase();
+  const el=document.getElementById('srch-out');
+  if(!q){el.innerHTML='';return;}
+  const all=[..._baskets.map(b=>({...b,_s:'active'})),..._closed.map(b=>({...b,_s:'closed'}))];
+  const hits=all.filter(b=>(b.basket_id||'').toLowerCase().includes(q)||(b.location||b.last_location||'').toLowerCase().includes(q));
+  if(!hits.length){el.innerHTML=`<div style="padding:2rem;text-align:center;font-family:var(--font-mono);color:var(--grey-400)">No results for "${escHtml(q)}"</div>`;return;}
+  const opts=getLocSuggestions().map(l=>`<option value="${escHtml(l)}">`).join('');
+  el.innerHTML=hits.map(b=>{
+    const loc=b._s==='active'?b.location:b.last_location;
+    const isClosed=b._s==='closed';
+    return `<div class="card" style="margin-bottom:12px">
+      <div style="padding:13px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+        <span class="mono" style="font-size:15px;font-weight:700;color:var(--blue-700)">${escHtml(b.basket_id)}</span>
+        <span class="badge ${isClosed?'badge-closed':loc?'badge-assigned':'badge-pending'}">${isClosed?'Closed':loc?'Assigned':'Unassigned'}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--border)">
+        <div style="padding:13px 16px;border-right:1px solid var(--border)">
+          <div style="font-size:10px;font-weight:700;color:var(--grey-400);text-transform:uppercase;letter-spacing:.08em;font-family:var(--font-mono);margin-bottom:5px">Location</div>
+          <div style="font-family:var(--font-mono);font-size:15px;font-weight:700;${!loc?'color:var(--grey-300)':''}">${loc?escHtml(loc):'Not assigned'}</div>
+        </div>
+        <div style="padding:13px 16px">
+          <div style="font-size:10px;font-weight:700;color:var(--grey-400);text-transform:uppercase;letter-spacing:.08em;font-family:var(--font-mono);margin-bottom:5px">${isClosed?'Closed':'Created'}</div>
+          <div style="font-family:var(--font-mono);font-size:13px;font-weight:700">${escHtml(isClosed?b.closed_at:b.created_at||'—')}</div>
+        </div>
+      </div>
+      ${!isClosed?`<div style="padding:12px 16px;background:var(--grey-50);display:flex;gap:8px;align-items:center">
+        <input id="si-${escHtml(b.basket_id)}" value="${loc?escHtml(loc):''}" placeholder="Enter / update location" list="si-dl-${escHtml(b.basket_id)}"
+          style="flex:1;padding:7px 10px;border:1.5px solid var(--border-mid);border-radius:var(--radius-sm);font-family:var(--font-mono);font-size:12px;outline:none"/>
+        <datalist id="si-dl-${escHtml(b.basket_id)}">${opts}</datalist>
+        <button class="btn btn-primary btn-sm btn-mono" onclick="srchAssign('${escHtml(b.basket_id)}',${b._row})">${loc?'Update':'Assign'}</button>
+        ${loc?`<button class="btn btn-danger btn-sm btn-mono" onclick="unassignBasket('${escHtml(b.basket_id)}')">Unassign</button>`:''}
+      </div>`:''}
+    </div>`;
+  }).join('');
+}
+async function srchAssign(id,rowNum){
+  const loc=document.getElementById('si-'+id)?.value.trim();
+  if(!loc){toast('Enter a location','err');return;}
+  showLoad();
+  try{
+    await apiUpdate(`${ALLOC}!B${rowNum}`,[[loc]]);
+    await apiUpdate(`${ALLOC}!D${rowNum}`,[[nowStr()]]);
+    await refreshData(); doSearch(); toast('Assigned → '+loc,'ok');
+  }catch(e){toast('Error: '+e.message,'err');}finally{hideLoad();}
+}
+
+// ════════════════════════════════════════════════════════════════
+//  EXPORT CSV
+// ════════════════════════════════════════════════════════════════
+function doExport(type){
+  const stamp=new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
+  let rows,fn;
+  if(type==='full'){
+    fn=`basket-full-${stamp}.csv`;
+    rows=[['basket_id','location','status','created_at','assigned_at'],
+      ..._baskets.map(b=>[b.basket_id,b.location||'',b.location?'assigned':'unassigned',b.created_at||'',b.assigned_at||'']),
+      ..._closed.map(b=>[b.basket_id,b.last_location||'','closed',b.created_at||'',b.closed_at||''])];
+  }else if(type==='allocation'){
+    fn=`basket-allocation-${stamp}.csv`;
+    rows=[['basket_id','location','status','created_at'],
+      ..._baskets.map(b=>[b.basket_id,b.location||'',b.location?'assigned':'unassigned',b.created_at||''])];
+  }else if(type==='assigned'){
+    fn=`basket-assigned-${stamp}.csv`;
+    rows=[['basket_id','location','assigned_at'],
+      ..._baskets.filter(b=>b.location).map(b=>[b.basket_id,b.location,b.assigned_at||''])];
+  }else{
+    fn=`basket-closed-${stamp}.csv`;
+    rows=[['basket_id','last_location','created_at','closed_at'],
+      ..._closed.map(b=>[b.basket_id,b.last_location||'',b.created_at||'',b.closed_at||''])];
+  }
+  const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\r\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download=fn; a.click();
+  toast('Exported: '+fn,'ok');
+}
+
+// ════════════════════════════════════════════════════════════════
+//  CROSS-TAB SYNC (BroadcastChannel)
+// ════════════════════════════════════════════════════════════════
+if(typeof BroadcastChannel!=='undefined'){
+  const ch=new BroadcastChannel('bm_sheets_sync');
+  ch.onmessage=()=>{ if(_token&&Date.now()<_tokenExpiry) refreshData(); };
+}
+</script>
+</body>
+</html>
